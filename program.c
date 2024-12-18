@@ -2,11 +2,35 @@
 
 /*************************************************************************
  *
+ * FUN, DEC, LOC: JMP
+ * 
+ *************************************************************************/
+
+static nil jmp_sig (s32);
+
+/*************************************************************************
+ *
+ * DEP, DEC, LOC: JMP
+ * 
+ *************************************************************************/
+
+#include <setjmp.h>
+
+/*************************************************************************
+ *
+ * VAR, DEC, LOC: JMP
+ * 
+ *************************************************************************/
+
+static jmp_buf f_jmp;
+
+/*************************************************************************
+ *
  * FUN, DEC, LOC: KEY
  * 
  *************************************************************************/
 
-static u32 key_get (s32*, str, s08);
+static u32 key_get (nil*, str, s08);
 
 /*************************************************************************
  *
@@ -14,12 +38,12 @@ static u32 key_get (s32*, str, s08);
  * 
  *************************************************************************/
 
-static u32 sem_new (s32*, s32);
-static u32 sem_del (s32*);
-static u32 sem_inc (s32*);
-static u32 sem_dec (s32*);
-static u32 sem_set (s32*, s32*);
-static u32 sem_get (s32*, s32*);
+static u32 sem_new (nil*);
+static u32 sem_del (nil*);
+static u32 sem_inc (nil*, u32);
+static u32 sem_dec (nil*, u32);
+static u32 sem_set (nil*, u32);
+static u32 sem_get (nil*, u32);
 
 /*************************************************************************
  *
@@ -38,7 +62,9 @@ static u32 shm_rem (buf*);
  * 
  *************************************************************************/
 
-static s32 work (s32*, s32*);
+static s32 work (ctx*, s32*, s32*, u32);
+
+static s32 loop (ctx*, s32*, s32*);
 
 /*************************************************************************
  *
@@ -64,39 +90,62 @@ static s32 work (s32*, s32*);
 int main (int argc, char ** argv)
 {
 	s32 r = EXIT_SUCCESS;
-	s32 k = 0;
-	s32 s = 0;
-	s32 v = FRACTAL_PROCESS;
-	s32 m = 0;
-	buf b = 0;
 	plt t = {0};
+	ctx c;
 
-	if (FRACTAL_FAILURE == key_get (&k, *argv, MAIN_VERSION))
+	c.key.get = key_get;
+	c.sem.new = sem_new;
+	c.sem.del = sem_del;
+	c.sem.inc = sem_inc;
+	c.sem.dec = sem_dec;
+	c.sem.get = sem_get;
+	c.sem.set = sem_set;
+	c.sem.n		= FRACTAL_PROCESS + 1;
+	c.shm.get = shm_get;
+	c.shm.del = shm_del;
+	c.shm.map = shm_map;
+	c.shm.rem = shm_rem;
+	c.shm.d		= 0;
+	c.shm.b		= 0;
+
+	if (FRACTAL_FAILURE == c.key.get (&c, *argv, MAIN_VERSION))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == sem_new (&s, k))
+	if (FRACTAL_FAILURE == c.sem.new (&c))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == sem_set (&s, &v))
+	for (int i = 0; i < FRACTAL_PROCESS; i++)
+	{
+		c.sem.v = 1;
+
+		if (FRACTAL_FAILURE == c.sem.set (&c, i))
+		{
+			goto FAILURE;
+		}
+	}
+
+	c.sem.v = FRACTAL_PROCESS;
+
+	if (FRACTAL_FAILURE == c.sem.set (&c, FRACTAL_PROCESS))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == shm_get (&m, &k))
+	if (FRACTAL_FAILURE == c.shm.get (&(c.shm.d), &(c.key.d)))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == shm_map (&b, &m))
+	if (FRACTAL_FAILURE == c.shm.map (&(c.shm.b), &(c.shm.d)))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == shm_rem (&b))
+	if (FRACTAL_FAILURE == c.shm.rem (&(c.shm.b)))
 	{
 		goto FAILURE;
 	}
@@ -105,13 +154,13 @@ int main (int argc, char ** argv)
 	{
 		if (! (t [i] = fork ()))
 		{
-			exit (work (&s, &m));
+			exit (work (&c, &(c.sem.d), &(c.shm.d), i));
 		}
 	}
 
-	for (s32 w = 0; w != FRACTAL_PROCESS; sem_get (&s, &w))
+	if (FRACTAL_FAILURE == loop (&c, &(c.sem.d), &(c.shm.d)))
 	{
-		sleep (1); printf ("[DEBUG] %i\n", w); fflush (stdout);
+		printf ("[DEBUG] loop ended\n");
 	}
 
 	for (u32 i = 0; i < FRACTAL_PROCESS; i++)
@@ -122,12 +171,12 @@ int main (int argc, char ** argv)
 		}
 	}
 
-	if (FRACTAL_FAILURE == sem_del (&s))
+	if (FRACTAL_FAILURE == c.sem.del (&c))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == shm_del (&m))
+	if (FRACTAL_FAILURE == shm_del (&(c.shm.d)))
 	{
 		goto FAILURE;
 	}
@@ -142,8 +191,6 @@ FAILURE:
 	{
 		printf ("[ERROR] %s\n", strerror (errno));
 	}
-
-	r = sem_del (0) & sem_dec (0) & sem_inc (0);
 
 SUCCESS:
 
@@ -164,24 +211,24 @@ SUCCESS:
  * 
  *************************************************************************/
 
-static u32 key_get (s32* k, str f, s08 v)
+static u32 key_get (nil* p, str f, s08 v)
 {
-	u32 r = FRACTAL_SUCCESS;
-	s32 u = 0;
+	u32 	r = FRACTAL_SUCCESS;
+	ctx*	c = 0;
 
-	if (! k)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	*k = 0;
+	c = p;
 
-	if (0 > (u = ftok (f, v)))
+	if (0 > (c->key.d = ftok (f, v)))
 	{
 		goto FAILURE;
 	}
 
-	*k = u; goto SUCCESS;
+	goto SUCCESS;
 
 FAILURE:
 
@@ -208,25 +255,27 @@ SUCCESS:
  * 
  *************************************************************************/
 
-static u32 sem_new (s32* s, s32 k)
+static u32 sem_new (nil* p)
 {
-	u32 r = FRACTAL_SUCCESS;
-	s32 u = 0;
+	u32 	r = FRACTAL_SUCCESS;
+	ctx* 	c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > (u = semget (k, 1, 0)))
+	c = p;
+
+	if (0 > (c->sem.d = semget (c->key.d, c->sem.n, 0)))
 	{
-		if (0 > (u = semget (k, 1, SEMAPHORE_FLAG)))
+		if (0 > (c->sem.d = semget (c->key.d, c->sem.n, SEMAPHORE_FLAG)))
 		{
 			goto FAILURE;
 		}
 	}
 
-	*s = u; goto SUCCESS;
+	goto SUCCESS;
 
 FAILURE:
 
@@ -238,26 +287,29 @@ SUCCESS:
 	return r;
 }
 
-static u32 sem_del (s32* s)
+static u32 sem_del (nil* p)
 {
-	u32 r = FRACTAL_SUCCESS;
+	u32 	r = FRACTAL_SUCCESS;
+	ctx* 	c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > *s)
+	c = p;
+
+	if (0 > c->sem.d)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > semctl (*s, 1, IPC_RMID, 0))
+	if (0 > semctl (c->sem.d, 1, IPC_RMID, 0))
 	{
 		goto FAILURE;
 	}
 
-	*s = 0; goto SUCCESS;
+	c->sem.d = 0; goto SUCCESS;
 
 FAILURE:
 
@@ -268,37 +320,29 @@ SUCCESS:
 	return r;
 }
 
-static u32 sem_inc (s32* s)
+static u32 sem_inc (nil* p, u32 n)
 {
-	u32 					r = FRACTAL_SUCCESS;
-	s32 					u = 0;
-	struct sembuf v = {0, 0, 0};
+					u32 		r = FRACTAL_SUCCESS;
+	struct 	sembuf 	v = {0, 0, 0};
+					ctx*		c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > *s)
+	c = p;
+
+	if (0 > c->sem.d)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > (u = semctl (*s, 0, GETVAL, 0)))
-	{
-		goto FAILURE;
-	}
-
-	if (u >= FRACTAL_PROCESS)
-	{
-		goto FAILURE;
-	}
-
-	v.sem_num = 0;
+	v.sem_num = n;
 	v.sem_op	= 1;
 	v.sem_flg	= 0;
 
-	if (0 > semop (*s, &v, 1))
+	if (0 > semop (c->sem.d, &v, 1))
 	{
 		goto FAILURE;
 	}
@@ -314,37 +358,29 @@ SUCCESS:
 	return r;
 }
 
-static u32 sem_dec (s32* s)
+static u32 sem_dec (nil* p, u32 n)
 {
-	u32 					r = FRACTAL_SUCCESS;
-	s32 					u = 0;
-	struct sembuf v = {0, 0, 0};
+					u32 		r = FRACTAL_SUCCESS;
+	struct 	sembuf	v = {0, 0, 0};
+					ctx*		c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > *s)
+	c = p;
+
+	if (0 > c->sem.d)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > (u = semctl (*s, 0, GETVAL, 0)))
-	{
-		goto FAILURE;
-	}
-
-	if (! u)
-	{
-		goto FAILURE;
-	}
-
-	v.sem_num =  0;
+	v.sem_num =  n;
 	v.sem_op	= -1;
 	v.sem_flg	=  0;
 
-	if (0 > semop (*s, &v, 1))
+	if (0 > semop (c->sem.d, &v, 1))
 	{
 		goto FAILURE;
 	}
@@ -361,34 +397,30 @@ SUCCESS:
 	return r;
 }
 
-static u32 sem_set (s32* s, s32* v)
+static u32 sem_set (nil* p, u32 n)
 {
-	u32 r = FRACTAL_SUCCESS;
-	s32 u = 0;
+	u32 	r = FRACTAL_SUCCESS;
+	ctx*	c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > *s)
+	c = p;
+
+	if (0 > c->sem.d)
 	{
 		goto FAILURE;
 	}
 
-	if (! v)
+
+	if (0 > semctl (c->sem.d, n, SETVAL, c->sem.v))
 	{
 		goto FAILURE;
 	}
 
-	u = *v;
-
-	if (0 > semctl (*s, 0, SETVAL, u))
-	{
-		goto FAILURE;
-	}
-
-	*v = 0; goto SUCCESS;
+	goto SUCCESS;
 
 FAILURE:
 
@@ -399,32 +431,29 @@ SUCCESS:
 	return r;
 }
 
-static u32 sem_get (s32* s, s32* v)
+static u32 sem_get (nil* p, u32 n)
 {
-	u32 r = FRACTAL_SUCCESS;
-	s32 u = 0;
+	u32 	r = FRACTAL_SUCCESS;
+	ctx* 	c = 0;
 
-	if (! s)
+	if (! p)
 	{
 		goto FAILURE;
 	}
 
-	if (0 > *s)
+	c = p;
+
+	if (0 > (c->sem.d))
 	{
 		goto FAILURE;
 	}
 
-	if (! v)
+	if (0 > (c->sem.v = semctl (c->sem.d, n, GETVAL, 0)))
 	{
 		goto FAILURE;
 	}
 
-	if (0 > (u = semctl (*s, 0, GETVAL, 0)))
-	{
-		goto FAILURE;
-	}
-
-	*v = u; goto SUCCESS;
+	goto SUCCESS;
 
 FAILURE:
 
@@ -594,10 +623,12 @@ SUCCESS:
  * 
  *************************************************************************/
 
-static s32 work (s32* s, s32* m)
+#include <string.h>
+#include <errno.h>
+
+static s32 work (ctx* c, s32* s, s32* m, u32 p)
 {
 	s32 r = EXIT_SUCCESS;
-	s32 u = 0;
 	buf v = 0;
 
 	if ((! s) || (0 > *s))
@@ -610,26 +641,43 @@ static s32 work (s32* s, s32* m)
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == sem_dec (s))
+	signal (SIGSEGV	, jmp_sig);
+	signal (SIGINT	, jmp_sig);
+
+	if (setjmp (f_jmp))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == sem_get (s, &u))
+	if (FRACTAL_FAILURE == c->shm.map (&v, m))
 	{
 		goto FAILURE;
 	}
 
-	if (FRACTAL_FAILURE == shm_map (&v, m))
+	for (;;)
 	{
-		goto FAILURE;
-	}
+		if (FRACTAL_FAILURE == c->sem.dec (c, p))
+		{
+			goto FAILURE;
+		}
 
-	sleep (getpid () % FRACTAL_PROCESS + 4);
+		if (FRACTAL_FAILURE == c->sem.get (c, p))
+		{
+			goto FAILURE;
+		}
 
-	if (FRACTAL_FAILURE == sem_inc (s))
-	{
-		goto FAILURE;
+		sleep (1);
+
+		if (FRACTAL_FAILURE == c->sem.dec (c, FRACTAL_PROCESS))
+		{
+			goto FAILURE;
+		}
+
+		if (FRACTAL_FAILURE == c->sem.get (c, FRACTAL_PROCESS))
+		{
+			goto FAILURE;
+		}
+
 	}
 
 	goto SUCCESS;
@@ -647,4 +695,105 @@ SUCCESS:
 	}
 
 	return r;
+}
+
+/*************************************************************************
+ *
+ * DEP, DEF, LOC: WORK
+ * 
+ *************************************************************************/
+
+#include <signal.h>
+
+/*************************************************************************
+ *
+ * FUN, DEF, LOC: WORK
+ * 
+ *************************************************************************/
+
+static s32 loop (ctx* c, s32* s, s32* m)
+{
+	s32 r = FRACTAL_SUCCESS;
+	s32 u = 0;
+
+	if (! s)
+	{
+		goto FAILURE;
+	}
+
+	if (! m)
+	{
+		goto FAILURE;
+	}
+
+	signal (SIGSEGV	, jmp_sig);
+	signal (SIGINT	, jmp_sig);
+
+	if (setjmp (f_jmp))
+	{
+		goto FAILURE;
+	}
+
+	for (;;)
+	{
+		if (FRACTAL_FAILURE == c->sem.get (c, FRACTAL_PROCESS))
+		{
+			goto FAILURE;
+		}
+
+		printf ("u: %i\n", u); sleep (1);
+
+		if (u)
+		{
+			continue;
+		}
+
+		for (s32 i = 0; i < FRACTAL_PROCESS; i++)
+		{
+
+			if (FRACTAL_FAILURE == c->sem.get (c, i))
+			{
+				goto FAILURE;
+			}
+			
+			printf ("p: %i %i\n", i, u);
+			
+			if (u)
+			{
+				continue;
+			}
+
+			if (FRACTAL_FAILURE == c->sem.inc (c, i))
+			{
+				goto FAILURE;
+			}
+
+			if (FRACTAL_FAILURE == c->sem.inc (c, FRACTAL_PROCESS))
+			{
+				goto FAILURE;
+			}
+		}
+
+	}
+	
+	goto SUCCESS;
+
+	FAILURE:
+
+		r = FRACTAL_FAILURE;
+
+	SUCCESS:
+
+	return r;
+}
+
+/*************************************************************************
+ *
+ * FUN, DEF, LOC: JMP
+ * 
+ *************************************************************************/
+
+static nil jmp_sig (s32 sig)
+{
+	longjmp (f_jmp, 0x1234);
 }
