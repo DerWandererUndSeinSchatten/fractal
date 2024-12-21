@@ -1,3 +1,5 @@
+#include <SDL2/SDL.h>
+
 #ifndef PROGRAM_H
 #define PROGRAM_H
 
@@ -16,14 +18,17 @@ typedef char*								str;
 typedef unsigned char*			buf;
 typedef unsigned int*				img;
 
-
+#define FRACTAL_FPS					60
+#define FRACTAL_DELAY				1000 / FRACTAL_FPS
 #define FRACTAL_SUCCESS			0x1
 #define FRACTAL_FAILURE			0x0
 #define FRACTAL_PROCESS			0x4
 #define FRACTAL_PIXEL				0x200
+#define FRACTAL_DEPTH				0x20
 #define FRACTAL_SPACE				FRACTAL_PIXEL * FRACTAL_PIXEL * sizeof (u32)
 #define FRACTAL_CHANNELS		2
 #define FRACTAL_SEMAPHORES	5
+#define FRACTAL_TITLE				"fractal"
 
 typedef int  								plt [FRACTAL_PROCESS];		
 
@@ -44,17 +49,39 @@ typedef struct {
 		s32 v;
 	} sem;
 	struct {
-		u32 (*get) (s32*, s32*);
-		u32 (*del) (s32*);
-		u32 (*map) (buf*, s32*);
-		u32 (*rem) (buf*);
+		u32 (*get) (nil*);
+		u32 (*del) (nil*);
+		u32 (*map) (nil*);
+		u32 (*rem) (nil*);
 		s32 d;
 		buf b;
 	} shm;
 	struct {
-		u64 pro; // producer
-		u64 con; // consumer
+		union
+		{
+			u64 val;
+			struct 
+			{
+				s32 r;
+				s32 w;
+			} channel;
+		} pro;
+		union
+		{
+			u64 val;
+			struct 
+			{
+				s32 r;
+				s32 w;
+			} channel;
+		} con;
 	} pip;
+	struct {
+		SDL_Renderer* render;
+		SDL_Window*		window;
+		SDL_Surface*	bitmap;
+		SDL_Texture*	target;
+	} gfx;
 } ctx;
 
 #endif
