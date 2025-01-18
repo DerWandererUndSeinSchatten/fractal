@@ -100,65 +100,56 @@ static u32 draw (ctx*);
 
 int main (int argc, char ** argv)
 {
-	s32 r = EXIT_SUCCESS;
-	plt t = {0};
-	ctx c;
+  s32 r = EXIT_SUCCESS;
+  plt t = {0};
+  ctx c;
 
-	if (FRACTAL_FAILURE == ctx_new (&c))
-	{
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == ctx_new (&c)) {
+    goto FAILURE;
+  }
 
-	if (FRACTAL_FAILURE == c.key.get (&c, *argv, MAIN_VERSION))
-	{
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == c.key.get (&c, *argv, MAIN_VERSION)) {
+    goto FAILURE;
+  }
 	
-	if (FRACTAL_FAILURE == c.shm.get (&c))
-	{
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == c.shm.get (&c)) {
+    goto FAILURE;
+  }
 
-	for (u32 i = 0; i < FRACTAL_PROCESS; i++)
-	{
-		if (! (t [i] = fork ()))
-		{
-			exit (work (&c, i));
-		}
-	}
+  for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
+    if (! (t [i] = fork ())) {
+      exit (work (&c, i));
+    }
+  }
 
-	if (FRACTAL_FAILURE == loop (&c))
-	{
-		printf ("[DEBUG] loop ended\n");
-	}
+  if (FRACTAL_FAILURE == loop (&c)) {
+    printf ("[DEBUG] loop ended\n");
+  }
 
-	for (u32 i = 0; i < FRACTAL_PROCESS; i++)
-	{
-		if (t [i] != waitpid (t [i], 0, 0))
-		{
-			printf ("[DEBUG] %i failed\n", t [i]);
-		}
-	}
+  for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
+    if (t [i] != waitpid (t [i], 0, 0)) {
+      printf ("[DEBUG] %i failed\n", t [i]);
+    }
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = EXIT_FAILURE;
+  r = EXIT_FAILURE;
 
-	if (errno)
-	{
-		printf ("[ERROR] %s\n", strerror (errno));
-	}
+  if (errno) {
+    printf ("[ERROR] %s\n", strerror (errno));
+  }
 
-SUCCESS:
+ SUCCESS:
 
-	if (FRACTAL_FAILURE == ctx_end (&c))
-	{
-		r = EXIT_FAILURE;
-	}
+  if (FRACTAL_FAILURE == ctx_end (&c))
+    {
+      r = EXIT_FAILURE;
+    }
 
-	return r;
+  return r;
 }
 
 
@@ -171,187 +162,195 @@ SUCCESS:
 static u32 ctx_new (ctx* c)
 {
 
-	u32 r = FRACTAL_SUCCESS;
+  u32 r = FRACTAL_SUCCESS;
 
-	if (! c)
-	{
-		goto FAILURE;
-	}
+  if (! c) {
+    goto FAILURE;
+  }
 
-	c->key.get 		= key_get;
-	c->sem.new 		= sem_new;
-	c->sem.del 		= sem_del;
-	c->sem.inc 		= sem_inc;
-	c->sem.dec 		= sem_dec;
-	c->sem.get 		= sem_get;
-	c->sem.set 		= sem_set;
-	c->sem.n			= FRACTAL_PROCESS + 1;
-	c->shm.get		= shm_get;
-	c->shm.del 		= shm_del;
-	c->shm.map 		= shm_map;
-	c->shm.rem 		= shm_rem;
-	c->shm.d			= 0;
-	c->shm.b			= 0;
-	c->gfx.render	= 0;
-	c->gfx.window = 0;
-	c->gfx.bitmap = 0;
-	c->gfx.target = 0;
+  c->key.get 	= key_get;
+  c->sem.new 	= sem_new;
+  c->sem.del 	= sem_del;
+  c->sem.inc 	= sem_inc;
+  c->sem.dec 	= sem_dec;
+  c->sem.get 	= sem_get;
+  c->sem.set 	= sem_set;
+  c->sem.n	= FRACTAL_PROCESS + 1;
+  c->sem.d      = 0;
+  c->shm.get	= shm_get;
+  c->shm.del 	= shm_del;
+  c->shm.map 	= shm_map;
+  c->shm.rem 	= shm_rem;
+  c->shm.d	= 0;
+  c->shm.b	= 0;
+  c->gfx.render	= 0;
+  c->gfx.window = 0;
+  c->gfx.bitmap = 0;
+  c->gfx.target = 0;
 
-	if (0 > pipe ((s32*)&(c->pip.pro)))
-	{
-		goto FAILURE;
-	}
+  if (0 > pipe ((s32*)&(c->pip.pro))) {
+    goto FAILURE;
+  }
 
-	if (0 > pipe ((s32*)&(c->pip.con)))
-	{
-		goto FAILURE;
-	}
+  if (0 > pipe ((s32*)&(c->pip.con))) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-		r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 
 }
 
 static u32 ctx_gfx (ctx* c)
 {
-	u32 r = FRACTAL_SUCCESS;
+  u32 r = FRACTAL_SUCCESS;
+  s32 u = 0;
+  s32 v = 0;
+  s32 w = 0;
+  u32 j = 0;
+  u32 k = 0;
+  u32 l = 0;
+  u32 m = 0;
+  
+  if (! c) {
+    goto FAILURE;
+  }
 
-	if (! c)
-	{
-		goto FAILURE;
-	}
+  if (0 > SDL_Init (SDL_INIT_EVERYTHING)) {
+    goto FAILURE;
+  }
 
-	if (0 > SDL_Init (SDL_INIT_EVERYTHING))
-	{
-		goto FAILURE;
-	}
+  u = SDL_WINDOWPOS_CENTERED;
+  v = FRACTAL_PIXEL;
+  w = SDL_WINDOW_OPENGL;
+  
+  if (! (c->gfx.window = SDL_CreateWindow (FRACTAL_TITLE,u, u, v, v, w))) {
+    goto FAILURE;
+  }
 
-	if (! (c->gfx.window = SDL_CreateWindow (
-		FRACTAL_TITLE,
-		SDL_WINDOWPOS_CENTERED,
-		SDL_WINDOWPOS_CENTERED, 
-		FRACTAL_PIXEL, 
-		FRACTAL_PIXEL,
-		SDL_WINDOW_OPENGL
-	))) {
-		goto FAILURE;
-	}
+  u = 0;
+  v = SDL_RENDERER_ACCELERATED;
+  
+  if (! (c->gfx.render = SDL_CreateRenderer (c->gfx.window, u, v))) {
+    goto FAILURE;
+  }
 
-	if (! (c->gfx.render = SDL_CreateRenderer (
-		c->gfx.window, 0, SDL_RENDERER_ACCELERATED
-	))) {
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == c->shm.get (c)){
+    goto FAILURE;
+  }
 
-	if (FRACTAL_FAILURE == c->shm.get (c))
-	{
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == c->shm.map (c)) {
+    goto FAILURE;
+  }
 
-	if (FRACTAL_FAILURE == c->shm.map (c))
-	{
-		goto FAILURE;
-	}
+  u = FRACTAL_PIXEL;
+  v = FRACTAL_DEPTH;
+  w = FRACTAL_PIXEL * sizeof (w);
+  j = 0xFF000000;
+  k = 0xFF0000;
+  l = 0xFF00;
+  m = 0xFF;
+  
+  if ((c->gfx.bitmap =
+       SDL_CreateRGBSurfaceFrom (c->shm.b, u, u, v, w, j, k, l, m))) {
+    goto SUCCESS;
+  }
 
-	if (! (c->gfx.bitmap = SDL_CreateRGBSurfaceFrom (
-		c->shm.b, 
-		FRACTAL_PIXEL, FRACTAL_PIXEL, FRACTAL_DEPTH, FRACTAL_PIXEL * sizeof (u32),
-		0xFF000000, 0xFF0000, 0xFF00, 0xFF
-	))) {
-		goto FAILURE;
-	}
+  if (! (c->gfx.target =
+	 SDL_CreateTextureFromSurface (c->gfx.render, c->gfx.bitmap))) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+ FAILURE:
 
-FAILURE:
+  r = EXIT_FAILURE;
 
-	r = EXIT_FAILURE;
+ SUCCESS:
 
-SUCCESS:
-
-	return r;
+  return r;
 }
 
 #include <signal.h>
 
 static u32 ctx_eve (ctx* c)
 {
-	u32 			r = FRACTAL_SUCCESS;
-	SDL_Event e ;
+  u32 	    r = FRACTAL_SUCCESS;
+  SDL_Event e ;
 
-	while (SDL_PollEvent (&e))
-	{
-		switch (e.type)
-		{
-		case SDL_QUIT: return FRACTAL_FAILURE;
+  while (SDL_PollEvent (&e)) {
 
-		}
-	}
+    switch (e.type) {
 
-	return r;
+    case SDL_QUIT: return FRACTAL_FAILURE;
+      
+    }
+  }
+
+  return r;
 }
 
 static u32 ctx_end (ctx* c)
 {
-	u32 r = FRACTAL_SUCCESS;
+  u32 r = FRACTAL_SUCCESS;
 
-	if (! c) {
-		goto FAILURE;
-	}
+  if (! c) {
+    goto FAILURE;
+  }
 
-	if (c->gfx.render)
-	{
-		SDL_DestroyRenderer (c->gfx.render);
-		c->gfx.render = 0;
-	}
+  if (c->gfx.render) {
+    SDL_DestroyRenderer (c->gfx.render);
+    c->gfx.render = 0;
+  }
 
-	if (c->gfx.window)
-	{
-		SDL_DestroyWindow (c->gfx.window);
-		c->gfx.window = 0;
-	}
+  if (c->gfx.window) {
+    SDL_DestroyWindow (c->gfx.window);
+    c->gfx.window = 0;
+  }
 
-	if (c->gfx.bitmap)
-	{
-		SDL_FreeSurface (c->gfx.bitmap);
-	}
+  if (c->gfx.bitmap) {
+    SDL_FreeSurface (c->gfx.bitmap);
+    c->gfx.bitmap = 0;
+  }
 
-	if (c->gfx.target)
-	{
-		SDL_DestroyTexture (c->gfx.target);
-	}
+  if (c->gfx.target) {
+    SDL_DestroyTexture (c->gfx.target);
+    c->gfx.target = 0;
+  }
 
-	if (FRACTAL_FAILURE == c->shm.del (c))
-	{
-		r = FRACTAL_FAILURE;
-	}
+  if (0 < c->shm.d) {
+    
+    if (FRACTAL_FAILURE == c->shm.del (c)) {
+      r = FRACTAL_FAILURE;
+    }
+    
+  }
 
-	if (0 < c->sem.d)
-	{
-		if (FRACTAL_FAILURE == c->sem.del (c))
-		{
-			r = FRACTAL_FAILURE;
-		}
-	}
-
-	SDL_Quit ();
-
-	goto SUCCESS;
-
-FAILURE:
-
+  if (0 < c->sem.d) {
+    
+      if (FRACTAL_FAILURE == c->sem.del (c)) {
 	r = FRACTAL_FAILURE;
+      }
+      
+  }
 
-SUCCESS:
+  SDL_Quit ();
 
-	return r;
+  goto SUCCESS;
+
+ FAILURE:
+
+  r = FRACTAL_FAILURE;
+
+ SUCCESS:
+
+  return r;
 }
 
 /*************************************************************************
@@ -370,30 +369,28 @@ SUCCESS:
 
 static u32 key_get (nil* p, str f, s08 v)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx*	c = 0;
+  u32 	r = FRACTAL_SUCCESS;
+  ctx*	c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > (c->key.d = ftok (f, v)))
-	{
-		goto FAILURE;
-	}
+  if (0 > (c->key.d = ftok (f, v))) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 }
 
 /*************************************************************************
@@ -414,210 +411,191 @@ SUCCESS:
 
 static u32 sem_new (nil* p)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx* 	c = 0;
+  u32 	r = FRACTAL_SUCCESS;
+  ctx* 	c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > (c->sem.d = semget (c->key.d, c->sem.n, 0)))
-	{
-		if (0 > (c->sem.d = semget (c->key.d, c->sem.n, SEMAPHORE_FLAG)))
-		{
-			goto FAILURE;
-		}
-	}
+  if (0 > (c->sem.d = semget (c->key.d, c->sem.n, 0))) {
+    if (0 > (c->sem.d = semget (c->key.d, c->sem.n, SEMAPHORE_FLAG))) {
+      goto FAILURE;
+    }
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-
-	return r;
+  return r;
 }
 
 static u32 sem_del (nil* p)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx* 	c = 0;
+  u32 	r = FRACTAL_SUCCESS;
+  ctx* 	c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
+  
+  c = p;
+  
+  if (0 > c->sem.d) {
+    goto FAILURE;
+  }
 
-	c = p;
+  if (0 > semctl (c->sem.d, 1, IPC_RMID, 0)) {
+    goto FAILURE;
+  }
+  
+  c->sem.d = 0; goto SUCCESS;
 
-	if (0 > c->sem.d)
-	{
-		goto FAILURE;
-	}
+ FAILURE:
 
-	if (0 > semctl (c->sem.d, 1, IPC_RMID, 0))
-	{
-		goto FAILURE;
-	}
+  r = FRACTAL_FAILURE;
 
-	c->sem.d = 0; goto SUCCESS;
+ SUCCESS:
 
-FAILURE:
-
-	r = FRACTAL_FAILURE;
-
-SUCCESS:
-
-	return r;
+  return r;
 }
 
 static u32 sem_inc (nil* p, u32 n)
 {
-					u32 		r = FRACTAL_SUCCESS;
-	struct 	sembuf 	v = {0, 0, 0};
-					ctx*		c = 0;
+  u32 		r = FRACTAL_SUCCESS;
+  struct sembuf v = {0, 0, 0};
+  ctx*		c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > c->sem.d)
-	{
-		goto FAILURE;
-	}
+  if (0 > c->sem.d) {
+    goto FAILURE;
+  }
 
-	v.sem_num = n;
-	v.sem_op	= 1;
-	v.sem_flg	= 0;
+  v.sem_num = n;
+  v.sem_op	= 1;
+  v.sem_flg	= 0;
 
-	if (0 > semop (c->sem.d, &v, 1))
-	{
-		goto FAILURE;
-	}
+  if (0 > semop (c->sem.d, &v, 1)) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 }
 
 static u32 sem_dec (nil* p, u32 n)
 {
-					u32 		r = FRACTAL_SUCCESS;
-	struct 	sembuf	v = {0, 0, 0};
-					ctx*		c = 0;
+  u32 		r = FRACTAL_SUCCESS;
+  struct sembuf	v = {0, 0, 0};
+  ctx*		c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > c->sem.d)
-	{
-		goto FAILURE;
-	}
+  if (0 > c->sem.d) {
+    goto FAILURE;
+  }
 
-	v.sem_num =  n;
-	v.sem_op	= -1;
-	v.sem_flg	=  0;
+  v.sem_num =  n;
+  v.sem_op  = -1;
+  v.sem_flg =  0;
 
-	if (0 > semop (c->sem.d, &v, 1))
-	{
-		goto FAILURE;
-	}
+  if (0 > semop (c->sem.d, &v, 1)) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 }
 
 static u32 sem_set (nil* p, u32 n)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx*	c = 0;
+  u32 	r = FRACTAL_SUCCESS;
+  ctx*	c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > c->sem.d)
-	{
-		goto FAILURE;
-	}
+  if (0 > c->sem.d) {
+    goto FAILURE;
+  }
+  
+  if (0 > semctl (c->sem.d, n, SETVAL, c->sem.v)) {
+    goto FAILURE;
+  }
 
-	if (0 > semctl (c->sem.d, n, SETVAL, c->sem.v))
-	{
-		goto FAILURE;
-	}
+  goto SUCCESS;
 
-	goto SUCCESS;
+ FAILURE:
 
-FAILURE:
+  r = FRACTAL_FAILURE;
 
-	r = FRACTAL_FAILURE;
+ SUCCESS:
 
-SUCCESS:
-
-	return r;
+  return r;
 }
 
 static u32 sem_get (nil* p, u32 n)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx* 	c = 0;
+  u32  r = FRACTAL_SUCCESS;
+  ctx* c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > (c->sem.d))
-	{
-		goto FAILURE;
-	}
+  if (0 > (c->sem.d)) {
+    goto FAILURE;
+  }
 
-	if (0 > (c->sem.v = semctl (c->sem.d, n, GETVAL, 0)))
-	{
-		goto FAILURE;
-	}
+  if (0 > (c->sem.v = semctl (c->sem.d, n, GETVAL, 0))) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 }
 
 /*************************************************************************
@@ -638,117 +616,108 @@ SUCCESS:
 
 static u32 shm_get (nil* p)
 {
-	u08 	r = FRACTAL_SUCCESS;
-	ctx*	c = 0;
+  u08  r = FRACTAL_SUCCESS;
+  ctx* c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > (c->shm.d = shmget (c->key.d, FRACTAL_SPACE, 0)))
-	{
-		if (0 > (c->shm.d = shmget (c->key.d, FRACTAL_SPACE, SHAREDMEM_FLAG)))
-		{
-			goto FAILURE;
-		}
-	}
+  if (0 > (c->shm.d = shmget (c->key.d, FRACTAL_SPACE, 0))) {
+    if (0 > (c->shm.d = shmget (c->key.d, FRACTAL_SPACE, SHAREDMEM_FLAG))) {
+      goto FAILURE;
+    }
+  }
+  
+  goto SUCCESS;
 
-	goto SUCCESS;
+ FAILURE:
 
-FAILURE:
+  r = FRACTAL_FAILURE;
 
-	r = FRACTAL_FAILURE;
+ SUCCESS:
 
-SUCCESS:
-
-	return r;
+  return r;
 }
 
 static u32 shm_del (nil* p)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx* 	c = 0;
+  u32  r = FRACTAL_SUCCESS;
+  ctx* c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > shmctl (c->shm.d, IPC_RMID, 0))
-	{
-		goto FAILURE;
-	}
+  if (0 > shmctl (c->shm.d, IPC_RMID, 0)) {
+    goto FAILURE;
+  }
 
-	goto SUCCESS;
+  goto SUCCESS;
 
-FAILURE:
+ FAILURE:
 
-	r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-SUCCESS:
+ SUCCESS:
 
-	return r;
+  return r;
 }
 
 static u32 shm_map (nil* p)
 {
-	u32 	r = FRACTAL_SUCCESS;
-	ctx*	c = 0;
+  u32  r = FRACTAL_SUCCESS;
+  ctx* c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 	
-	c = p;
+  c = p;
 
-	if ((buf)0 > (c->shm.b = (shmat (c->shm.d, 0, 0))))
-	{
-		goto FAILURE;
-	}
+  if ((buf)0 > (c->shm.b = (shmat (c->shm.d, 0, 0)))) {
+    goto FAILURE;
+  }
+  
+  goto SUCCESS;
 
-	goto SUCCESS;
+ FAILURE:
 
-FAILURE:
+  r = FRACTAL_FAILURE;
 
-	r = FRACTAL_FAILURE;
+ SUCCESS:
 
-SUCCESS:
-
-	return r;
+  return r;
 }
 
 static u32 shm_rem (nil* p)
 {
-	u32		r = FRACTAL_SUCCESS;
-	ctx*	c = 0;
+  u32  r = FRACTAL_SUCCESS;
+  ctx* c = 0;
 
-	if (! p)
-	{
-		goto FAILURE;
-	}
+  if (! p) {
+    goto FAILURE;
+  }
 
-	c = p;
+  c = p;
 
-	if (0 > shmdt (c->shm.b))
-	{
-		goto FAILURE;
-	}
+  if (0 > shmdt (c->shm.b)) {
+    goto FAILURE;
+  }
+  
+  goto SUCCESS;
+  
+ FAILURE:
 
-	goto SUCCESS;
+  r = FRACTAL_FAILURE;
 
-FAILURE:
+ SUCCESS:
 
-	r = FRACTAL_FAILURE;
-
-SUCCESS:
-
-	return r;
+  return r;
 
 }
 
@@ -763,91 +732,67 @@ SUCCESS:
 
 static s32 work (ctx* c, u32 p)
 {
-	s32 r = EXIT_SUCCESS;
-	img w = 0;
-	u32 u = 0;
-	u32 v = 0;
-	u32 x = FRACTAL_PIXEL / FRACTAL_PROCESS;
-	u32 y = p * x;
-	u32 z = y + x;
-	s32 a = 0;
-	s32 b = 0;	
+  s32 r = EXIT_SUCCESS;
+  img w = 0;
+  u32 u = 0;
+  u32 x = FRACTAL_PIXEL / FRACTAL_PROCESS;
+  u32 y = p * x;
+  u32 z = y + x;	
 
-	if (! c)
-	{
-		goto FAILURE;
-	}
+  if (! c) {
+    goto FAILURE;
+  }
 
-	if ((! c->sem.d) || (0 > c->sem.d))
-	{
-		goto FAILURE;
-	}
+  if ((! c->shm.d) || (0 > c->shm.d)) {
+    goto FAILURE;
+  }
 
-	if ((! c->shm.d) || (0 > c->shm.d))
-	{
-		goto FAILURE;
-	}
+  signal (SIGSEGV	, jmp_sig);
+  signal (SIGINT	, jmp_sig);
 
-	signal (SIGSEGV	, jmp_sig);
-	signal (SIGINT	, jmp_sig);
+  if (setjmp (f_jmp)) {
+    goto FAILURE;
+  }
 
-	if (setjmp (f_jmp))
-	{
-		goto FAILURE;
-	}
+  if (FRACTAL_FAILURE == c->shm.map (c)) {
+    goto FAILURE;
+  }
+  
+  for (;;) {
+       
+    if (sizeof (u) != read (c->pip.pro.channel.r, &u, sizeof (u))) {
+      goto FAILURE;
+    }
 
-	if (FRACTAL_FAILURE == c->shm.map (c))
-	{
-		goto FAILURE;
-	}
+    if (u == 0xFFFF) {
+      break;
+    }
 
-	v = p + 1;
+    w = (img)c->shm.b;
 
-	for (;;)
-	{
-		a = SDL_GetTicks ();
+    for (u32 i = y, j = z; i < j; i++) {
+      w [i] = 0xFFFFFFFF;
+    }
 
-		if (sizeof (u) != read (c->pip.pro.channel.r, &u, sizeof (u)))
-		{
-			goto FAILURE;
-		}
+    if (sizeof (u) != write (c->pip.con.channel.w, &u, sizeof (u))) {
+      goto FAILURE;
+    }
 
-		w = (img)c->shm.b;
+  }
+  
+  goto SUCCESS;
 
-		for (u32 i = y, j = z; i < j; i++)
-		{
-			w [i] = 0xFF;
-		}
+ FAILURE:
 
-		if (sizeof (v) != write (c->pip.con.channel.w, &v, sizeof (v)))
-		{
-			goto FAILURE;
-		}
+  r = FRACTAL_FAILURE;
 
-		b = SDL_GetTicks () - a;
+ SUCCESS:
 
-		if (b < FRACTAL_DELAY)
-		{
-			SDL_Delay (FRACTAL_DELAY - b);
-		}
+  if (FRACTAL_FAILURE == c->shm.rem (c)) {
+    r = FRACTAL_FAILURE;
+  }
 
-	}
-
-	goto SUCCESS;
-
-
-FAILURE:
-
-	r = FRACTAL_FAILURE;
-
-SUCCESS:
-
-	if (FRACTAL_FAILURE == shm_rem (&w))
-	{
-		r = FRACTAL_FAILURE;
-	}
-
-	return r;
+  return r;
 }
 
 /*************************************************************************
@@ -866,90 +811,91 @@ SUCCESS:
 
 static s32 loop (ctx* c)
 {
-	s32 r = FRACTAL_SUCCESS;
-	u32 u = 0;
-	u32 v = 0;
-	s32 a = 0;
-	s32 b = 0;
+  s32 r = FRACTAL_SUCCESS;
+  u32 u = 0;
+  u32 v = 0;
+  s32 a = 0;
+  s32 b = 0;
 
-	if (! c)
-	{
-		goto FAILURE;
-	}
+  if (! c) {
+    goto FAILURE;
+  }
 
-	signal (SIGSEGV	, jmp_sig);
-	signal (SIGINT	, jmp_sig);
+  signal (SIGSEGV	, jmp_sig);
+  signal (SIGINT	, jmp_sig);
 
-	if (setjmp (f_jmp))
-	{
-		goto FAILURE;
-	}
+  if (setjmp (f_jmp)) {
 
-	if (FRACTAL_FAILURE == ctx_gfx (c))
-	{
-		goto FAILURE;
-	}
+    u = 0xFFFF;
 
-	for (;;)
-	{
-		a = SDL_GetTicks ();
+    for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
+          
+      if (sizeof (u) != write (c->pip.pro.channel.w, &u, sizeof (u))) {
+	goto FAILURE;
+      }
+    
+    }
+    
+    goto SUCCESS;
+  }
 
-		if (FRACTAL_FAILURE == ctx_eve (c))
-		{
-			break;
-		}
+  if (FRACTAL_FAILURE == ctx_gfx (c)) {
+    raise (SIGINT);
+  }
+  
+  for (;;) {
 
-		u = 0;
-		v = 0;
+    a = SDL_GetTicks ();
 
-		for (u32 i = 0; i < FRACTAL_PROCESS; i++)
-		{
-			if (sizeof (i) != write (c->pip.pro.channel.w, &i, sizeof (i)))
-			{
-				goto FAILURE;
-			}
+    if (FRACTAL_FAILURE == draw (c)) {
+      break;
+    }
+    
+    if (FRACTAL_FAILURE == ctx_eve (c)) {
+      raise (SIGINT);
+    }
 
-			u = u + i + 1;
-		}
+    u = 0;
+    v = 0;
 
-		if (FRACTAL_FAILURE == draw (c))
-		{
-			break;
-		}
+    for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
+      
+      if (sizeof (i) != write (c->pip.pro.channel.w, &i, sizeof (i))) {
+	goto FAILURE;
+      }
 
-		while (u)
-		{
-			if (sizeof (v) != read (c->pip.con.channel.r, &v, sizeof (v)))
-			{
-				goto FAILURE;
-			}
+      u = u + i + 1;
+    }   
 
-			u = u - v;
+    while (u) {
+      
+      if (sizeof (v) != read (c->pip.con.channel.r, &v, sizeof (v))) {
+	goto FAILURE;
+      }
+      
+      u = u - v - 1;
 
-			printf ("%i < %i\n", v - 1, u); fflush (stdout);
+    }
+    
+    b = SDL_GetTicks () - a;
+    
+    if (b < FRACTAL_DELAY) {
+      SDL_Delay (FRACTAL_DELAY - b);
+    }
 
-		}
-
-		b = SDL_GetTicks () - a;
-
-		if (b < FRACTAL_DELAY)
-		{
-			SDL_Delay (FRACTAL_DELAY - b);
-		}
-
-	}
+  }
 	
-	goto SUCCESS;
+  goto SUCCESS;
 
-	FAILURE:
+ FAILURE:
 
-		r = FRACTAL_FAILURE;
+  r = FRACTAL_FAILURE;
 
-	SUCCESS:
+ SUCCESS:
 
-		if (c) r = c->shm.rem (c);
+  if (c) r = c->shm.rem (c);
 
-		return r;
+  return r;
 }
 
 /*************************************************************************
@@ -960,7 +906,7 @@ static s32 loop (ctx* c)
 
 static nil jmp_sig (s32 sig)
 {
-	longjmp (f_jmp, 0x1234);
+  longjmp (f_jmp, 0x1234);
 }
 
 /*************************************************************************
@@ -971,37 +917,26 @@ static nil jmp_sig (s32 sig)
 
 static u32 draw (ctx* c)
 {
-	u32 						r = FRACTAL_SUCCESS;
-	static SDL_Rect a = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
-	static SDL_Rect b = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
+  u32 		  r = FRACTAL_SUCCESS;
+  static SDL_Rect a = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
+  static SDL_Rect b = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
 	
-	if (! c)
-	{
-		goto FAILURE;
-	}
+  if (! c) {
+    goto FAILURE;
+  }
 
-	if (! (c->gfx.target = SDL_CreateTextureFromSurface (
-		c->gfx.render, c->gfx.bitmap
-	))) {
-		goto FAILURE;
-	}
+  SDL_UpdateTexture (c->gfx.target, &a, c->shm.b, a.w * sizeof (u32));
+  SDL_RenderClear (c->gfx.render);
+  SDL_RenderCopy (c->gfx.render, c->gfx.target, &a, &b);
+  SDL_RenderPresent (c->gfx.render);
 
-	SDL_RenderClear (c->gfx.render);
-	SDL_RenderCopy (c->gfx.render, c->gfx.target, &a, &b);
-	SDL_RenderPresent (c->gfx.render);
+  goto SUCCESS;
 
-	goto SUCCESS;
+ FAILURE:
 
-FAILURE:
+  r = FRACTAL_FAILURE;
 
-	r = FRACTAL_FAILURE;
-
-SUCCESS:
-
-	if (c->gfx.target)
-	{
-		SDL_DestroyTexture (c->gfx.target); c->gfx.target = 0;
-	}
-
-	return r;
+ SUCCESS:
+  
+  return r;
 }

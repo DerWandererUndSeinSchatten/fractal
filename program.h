@@ -33,55 +33,55 @@ typedef unsigned int*				img;
 typedef int  								plt [FRACTAL_PROCESS];		
 
 typedef struct {
-	struct {
-		u32 (*get) (nil*, str, s08);
-		s32 d;
-	} key;
-	struct {
-		u32 (*new) (nil*);
-		u32 (*del) (nil*);
-		u32 (*inc) (nil*, u32);
-		u32 (*dec) (nil*, u32);
-		u32 (*set) (nil*, u32);
-		u32 (*get) (nil*, u32);
-		s32 d;
-		u32 n;
-		s32 v;
-	} sem;
-	struct {
-		u32 (*get) (nil*);
-		u32 (*del) (nil*);
-		u32 (*map) (nil*);
-		u32 (*rem) (nil*);
-		s32 d;
-		buf b;
-	} shm;
-	struct {
-		union
-		{
-			u64 val;
-			struct 
-			{
-				s32 r;
-				s32 w;
-			} channel;
-		} pro;
-		union
-		{
-			u64 val;
-			struct 
-			{
-				s32 r;
-				s32 w;
-			} channel;
-		} con;
-	} pip;
-	struct {
-		SDL_Renderer* render;
-		SDL_Window*		window;
-		SDL_Surface*	bitmap;
-		SDL_Texture*	target;
-	} gfx;
+  struct {
+    u32 (*get) (nil*, str, s08);
+    s32 d;
+  } key;
+  struct {
+    u32 (*new) (nil*);
+    u32 (*del) (nil*);
+    u32 (*inc) (nil*, u32);
+    u32 (*dec) (nil*, u32);
+    u32 (*set) (nil*, u32);
+    u32 (*get) (nil*, u32);
+    s32 d;
+    u32 n;
+    s32 v;
+  } sem;
+  struct {
+    u32 (*get) (nil*);
+    u32 (*del) (nil*);
+    u32 (*map) (nil*);
+    u32 (*rem) (nil*);
+    s32 d;
+    buf b;
+  } shm;
+  struct {
+    union
+    {
+      u64 val;
+      struct 
+      {
+	s32 r;
+	s32 w;
+      } channel;
+    } pro;
+    union
+    {
+      u64 val;
+      struct 
+      {
+	s32 r;
+	s32 w;
+      } channel;
+    } con;
+  } pip;
+  struct {
+    SDL_Renderer* render;
+    SDL_Window*		window;
+    SDL_Surface*	bitmap;
+    SDL_Texture*	target;
+  } gfx;
 } ctx;
 
 #endif
