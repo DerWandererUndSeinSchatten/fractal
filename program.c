@@ -258,15 +258,17 @@ static u32 ctx_gfx (ctx* c)
   l = 0xFF00;
   m = 0xFF;
   
-  if ((c->gfx.bitmap =
+  if (! (c->gfx.bitmap =
        SDL_CreateRGBSurfaceFrom (c->shm.b, u, u, v, w, j, k, l, m))) {
-    goto SUCCESS;
+    goto FAILURE;
   }
 
   if (! (c->gfx.target =
 	 SDL_CreateTextureFromSurface (c->gfx.render, c->gfx.bitmap))) {
     goto FAILURE;
   }
+
+  goto SUCCESS;
 
  FAILURE:
 
@@ -771,9 +773,11 @@ static s32 work (ctx* c, u32 p)
     w = (img)c->shm.b;
 
     for (u32 i = y, j = z; i < j; i++) {
-      w [i] = 0xFFFFFFFF;
+      for (u32 j = 0; j < FRACTAL_PIXEL; j++) {
+	w [i * FRACTAL_PIXEL + j] = 0xFF + (0xFF << (8 * (u - 1)));
+      }      
     }
-
+    
     if (sizeof (u) != write (c->pip.con.channel.w, &u, sizeof (u))) {
       goto FAILURE;
     }
@@ -842,7 +846,7 @@ static s32 loop (ctx* c)
   if (FRACTAL_FAILURE == ctx_gfx (c)) {
     raise (SIGINT);
   }
-  
+
   for (;;) {
 
     a = SDL_GetTicks ();
@@ -850,7 +854,7 @@ static s32 loop (ctx* c)
     if (FRACTAL_FAILURE == draw (c)) {
       break;
     }
-    
+
     if (FRACTAL_FAILURE == ctx_eve (c)) {
       raise (SIGINT);
     }
@@ -876,7 +880,7 @@ static s32 loop (ctx* c)
       u = u - v - 1;
 
     }
-    
+
     b = SDL_GetTicks () - a;
     
     if (b < FRACTAL_DELAY) {
@@ -920,14 +924,17 @@ static u32 draw (ctx* c)
   u32 		  r = FRACTAL_SUCCESS;
   static SDL_Rect a = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
   static SDL_Rect b = {0, 0, FRACTAL_PIXEL, FRACTAL_PIXEL};
-	
+
   if (! c) {
     goto FAILURE;
   }
 
   SDL_UpdateTexture (c->gfx.target, &a, c->shm.b, a.w * sizeof (u32));
+
   SDL_RenderClear (c->gfx.render);
+
   SDL_RenderCopy (c->gfx.render, c->gfx.target, &a, &b);
+
   SDL_RenderPresent (c->gfx.render);
 
   goto SUCCESS;
