@@ -73,7 +73,7 @@ static u32 shm_rem (nil*);
  * 
  *************************************************************************/
 
-static s32 work (ctx*, u32);
+static s32 work (ctx*);
 static s32 loop (ctx*);
 static u32 draw (ctx*);
 
@@ -118,7 +118,7 @@ int main (int argc, char ** argv)
 
   for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
     if (! (t [i] = fork ())) {
-      exit (work (&c, i));
+      exit (work (&c));
     }
   }
 
@@ -253,10 +253,10 @@ static u32 ctx_gfx (ctx* c)
   u = FRACTAL_PIXEL;
   v = FRACTAL_DEPTH;
   w = FRACTAL_PIXEL * sizeof (w);
-  j = 0xFF000000;
-  k = 0xFF0000;
-  l = 0xFF00;
-  m = 0xFF;
+  j = 0xFF;
+  k = 0xFF00;
+  l = 0xFF0000;
+  m = 0xFF000000;
   
   if (! (c->gfx.bitmap =
        SDL_CreateRGBSurfaceFrom (c->shm.b, u, u, v, w, j, k, l, m))) {
@@ -725,21 +725,87 @@ static u32 shm_rem (nil* p)
 
 /*************************************************************************
  *
- * FUN, DEF, LOC: WORK
+ * FUN, DEP, LOC: CALC
+ * 
+ *************************************************************************/
+
+#include <math.h>
+
+/*************************************************************************
+ *
+ * FUN, DEF, LOC: CALC
+ * 
+ *************************************************************************/
+
+#define CALC_ITERATIONS 0x40
+
+static u32 calc (u32 Y, u32 X, u32 D)
+{
+  u32 r = 0;
+  f64 x = 0;
+  f64 y = 0;
+  f64 d = 0;
+  c64 Z = 0;
+  c64 z = 0;
+  c64 C = 0;
+  u32 i = 0;
+  
+  if (! D) {
+    return 0xFF000000 + 0xFF;
+  }
+
+  d = 4.f;
+  d = d / D;
+  x = d - (d * (D / 2) + .5f);
+  x = x + X * d;
+  y = d - (d * (D / 2));
+  y = y + Y * d;
+  C = x + y * I;
+  
+  Z = 0 + 0 * I;
+  z = Z;
+
+  for (i = 0; i < CALC_ITERATIONS; i++) {
+    z = Z * Z;
+    z = z + C;
+    if (cabs (z) > 2.0) {
+      break;
+    }
+    Z = z;    
+  }
+
+  if (cabs (Z) < 2) {
+    r = 0xFF000000 + i * 0x30;
+  } else {
+    r = 0xFF000000;
+  }
+  
+  return r;
+}
+
+/*************************************************************************
+ *
+ * FUN, DEP, LOC: WORK
  * 
  *************************************************************************/
 
 #include <string.h>
 #include <errno.h>
 
-static s32 work (ctx* c, u32 p)
+/*************************************************************************
+ *
+ * FUN, DEF, LOC: WORK
+ * 
+ *************************************************************************/
+
+static s32 work (ctx* c)
 {
   s32 r = EXIT_SUCCESS;
   img w = 0;
   u32 u = 0;
   u32 x = FRACTAL_PIXEL / FRACTAL_PROCESS;
-  u32 y = p * x;
-  u32 z = y + x;	
+  u32 y = 0;
+  u32 z = 0;
 
   if (! c) {
     goto FAILURE;
@@ -770,12 +836,14 @@ static s32 work (ctx* c, u32 p)
       break;
     }
 
+    y = u * x;
+    z = y + x;
     w = (img)c->shm.b;
-
+    
     for (u32 i = y, j = z; i < j; i++) {
       for (u32 j = 0; j < FRACTAL_PIXEL; j++) {
-	w [i * FRACTAL_PIXEL + j] = 0xFF + (0xFF << (8 * (u - 1)));
-      }      
+	w [i * FRACTAL_PIXEL + j] = calc (i, j, FRACTAL_PIXEL);
+      }
     }
     
     if (sizeof (u) != write (c->pip.con.channel.w, &u, sizeof (u))) {
@@ -882,7 +950,7 @@ static s32 loop (ctx* c)
     }
 
     b = SDL_GetTicks () - a;
-    
+
     if (b < FRACTAL_DELAY) {
       SDL_Delay (FRACTAL_DELAY - b);
     }
