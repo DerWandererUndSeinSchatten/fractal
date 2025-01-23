@@ -4,6 +4,8 @@ OPT=-std=c11 -O3
 ifeq ("$(shell uname)", "Darwin")
 	LNK+=-rpath /usr/local/lib
 	LIB+=-framework OpenGL -framework GLUT
+else
+	OPT+=-mavx2
 endif
 
 testing: DBG=-ggdb -Werror -Wall -Wpedantic

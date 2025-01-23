@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+#define PROGRAM_VECTOR_EXT // INTRISICS
 
 #ifndef PROGRAM_H
 #define PROGRAM_H
@@ -17,7 +18,7 @@ typedef void	           nil;
 typedef char*		   str;
 typedef unsigned char*	   buf;
 typedef unsigned int*	   img;
-
+typedef void*              ref;
 #include <complex.h>
 
 typedef float  complex     c32;

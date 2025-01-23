@@ -144,10 +144,9 @@ int main (int argc, char ** argv)
 
  SUCCESS:
 
-  if (FRACTAL_FAILURE == ctx_end (&c))
-    {
-      r = EXIT_FAILURE;
-    }
+  if (FRACTAL_FAILURE == ctx_end (&c)) {
+    r = EXIT_FAILURE;
+  }
 
   return r;
 }
@@ -306,16 +305,6 @@ static u32 ctx_end (ctx* c)
     goto FAILURE;
   }
 
-  if (c->gfx.render) {
-    SDL_DestroyRenderer (c->gfx.render);
-    c->gfx.render = 0;
-  }
-
-  if (c->gfx.window) {
-    SDL_DestroyWindow (c->gfx.window);
-    c->gfx.window = 0;
-  }
-
   if (c->gfx.bitmap) {
     SDL_FreeSurface (c->gfx.bitmap);
     c->gfx.bitmap = 0;
@@ -326,6 +315,16 @@ static u32 ctx_end (ctx* c)
     c->gfx.target = 0;
   }
 
+  if (c->gfx.render) {
+    SDL_DestroyRenderer (c->gfx.render);
+    c->gfx.render = 0;
+  }
+
+  if (c->gfx.window) {
+    SDL_DestroyWindow (c->gfx.window);
+    c->gfx.window = 0;
+  }
+  
   if (0 < c->shm.d) {
     
     if (FRACTAL_FAILURE == c->shm.del (c)) {
@@ -731,6 +730,10 @@ static u32 shm_rem (nil* p)
 
 #include <math.h>
 
+#ifdef PROGRAM_VECTOR_EXT
+#include <immintrin.h>
+#endif
+
 /*************************************************************************
  *
  * FUN, DEF, LOC: CALC
@@ -751,7 +754,7 @@ static u32 calc (u32 Y, u32 X, u32 D)
   u32 i = 0;
   
   if (! D) {
-    return 0xFF000000 + 0xFF;
+    return 0xFF000000;
   }
 
   d = 4.f;
@@ -774,13 +777,16 @@ static u32 calc (u32 Y, u32 X, u32 D)
     Z = z;    
   }
 
-  if (cabs (Z) < 2) {
-    r = 0xFF000000 + i * 0x30;
-  } else {
-    r = 0xFF000000;
-  }
-  
+  r = 0xFF000000 + i * 4;
+
   return r;
+}
+
+static nil para (u32 Y, u32 X, u32 D, img A, u32 L)
+{
+  for (u32 i = 0; i < L; i++) {
+    A [i] = calc (Y, X + i, D);
+  }
 }
 
 /*************************************************************************
@@ -815,8 +821,8 @@ static s32 work (ctx* c)
     goto FAILURE;
   }
 
-  signal (SIGSEGV	, jmp_sig);
-  signal (SIGINT	, jmp_sig);
+  signal (SIGSEGV, jmp_sig);
+  signal (SIGINT , jmp_sig);
 
   if (setjmp (f_jmp)) {
     goto FAILURE;
@@ -841,8 +847,13 @@ static s32 work (ctx* c)
     w = (img)c->shm.b;
     
     for (u32 i = y, j = z; i < j; i++) {
+#ifdef PROGRAM_VECTOR_EXT
+      for (u32 j = 0; j < FRACTAL_PIXEL; j+=sizeof (u32)) {
+	para (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u32));
+#else
       for (u32 j = 0; j < FRACTAL_PIXEL; j++) {
 	w [i * FRACTAL_PIXEL + j] = calc (i, j, FRACTAL_PIXEL);
+#endif
       }
     }
     
