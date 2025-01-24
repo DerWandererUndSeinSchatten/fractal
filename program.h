@@ -25,7 +25,7 @@ typedef void*              ref;
 typedef float  complex     c32;
 typedef double complex     c64;
 
-#define FRACTAL_FPS	   30
+#define FRACTAL_FPS	   40
 #define FRACTAL_DELAY	   1000 / FRACTAL_FPS
 #define FRACTAL_SUCCESS	   0x1
 #define FRACTAL_FAILURE	   0x0
