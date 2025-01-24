@@ -728,66 +728,8 @@ static u32 shm_rem (nil* p)
  * 
  *************************************************************************/
 
-#include <math.h>
 
-#ifdef PROGRAM_VECTOR_EXT
-#include <immintrin.h>
-#endif
-
-/*************************************************************************
- *
- * FUN, DEF, LOC: CALC
- * 
- *************************************************************************/
-
-#define CALC_ITERATIONS 0x40
-
-static u32 calc (u32 Y, u32 X, u32 D)
-{
-  u32 r = 0;
-  f64 x = 0;
-  f64 y = 0;
-  f64 d = 0;
-  c64 Z = 0;
-  c64 z = 0;
-  c64 C = 0;
-  u32 i = 0;
-  
-  if (! D) {
-    return 0xFF000000;
-  }
-
-  d = 4.f;
-  d = d / D;
-  x = d - (d * (D / 2) + .5f);
-  x = x + X * d;
-  y = d - (d * (D / 2));
-  y = y + Y * d;
-  C = x + y * I;
-  
-  Z = 0 + 0 * I;
-  z = Z;
-
-  for (i = 0; i < CALC_ITERATIONS; i++) {
-    z = Z * Z;
-    z = z + C;
-    if (cabs (z) > 2.0) {
-      break;
-    }
-    Z = z;    
-  }
-
-  r = 0xFF000000 + i * 4;
-
-  return r;
-}
-
-static nil para (u32 Y, u32 X, u32 D, img A, u32 L)
-{
-  for (u32 i = 0; i < L; i++) {
-    A [i] = calc (Y, X + i, D);
-  }
-}
+extern nil calc (u32 Y, u32 X, u32 D, img A, u32 L);
 
 /*************************************************************************
  *
@@ -847,13 +789,8 @@ static s32 work (ctx* c)
     w = (img)c->shm.b;
     
     for (u32 i = y, j = z; i < j; i++) {
-#ifdef PROGRAM_VECTOR_EXT
       for (u32 j = 0; j < FRACTAL_PIXEL; j+=sizeof (u32)) {
-	para (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u32));
-#else
-      for (u32 j = 0; j < FRACTAL_PIXEL; j++) {
-	w [i * FRACTAL_PIXEL + j] = calc (i, j, FRACTAL_PIXEL);
-#endif
+	calc (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u32));
       }
     }
     

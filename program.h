@@ -1,4 +1,5 @@
 #include <SDL2/SDL.h>
+
 #define PROGRAM_VECTOR_EXT // INTRISICS
 
 #ifndef PROGRAM_H
