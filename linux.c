@@ -1,13 +1,46 @@
 #include "program.h"
 
+//typedef struct {} linux_t;
+
 #include <math.h>
+#include <unistd.h>
 #include <immintrin.h>
+
+s32 f_offset_z = 0; // zoom
+s32 f_offset_h = 0; // move, horizontal
+s32 f_offset_v = 0; // move, vertical
+
+static nil cmd_wildcard ();
+static nil cmd_scroll_n ();
+static nil cmd_scroll_e ();
+static nil cmd_scroll_s ();
+static nil cmd_scroll_w ();
+static nil cmd_zoom_inc ();
+static nil cmd_zoom_dec ();
+static nil cmd_loop_end ();
+
+static nil (*f_cmd [COMMANDS]) () = 
+{
+  cmd_wildcard, cmd_scroll_n, cmd_scroll_e, cmd_scroll_s,
+  cmd_scroll_w, cmd_zoom_inc, cmd_zoom_dec, cmd_loop_end
+};
+
+nil gen_conf (u16 F)
+{
+
+  if (F >= COMMANDS) {
+    return;
+  }
+  
+  f_cmd [F] ();
+  
+}
 
 #define CALC_ITERATION 0x64
 #define CALC_THRESHOLD 2.
 #define CALC_OPTIMIZED
 
-nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
+nil gen_calc (u32 Y, u32 X, u32 D, img A, u32 L)
 {
   f64 d = 4.0f;
   d = d / D;
@@ -100,4 +133,46 @@ nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
     
 #endif
   
+}
+
+static nil cmd_wildcard ()
+{
+  
+}
+
+static nil cmd_scroll_n ()
+{
+  
+}
+
+static nil cmd_scroll_e ()
+{
+  
+}
+
+static nil cmd_scroll_s ()
+{
+  
+}
+
+static nil cmd_scroll_w ()
+{
+  
+}
+
+static nil cmd_zoom_inc ()
+{
+  
+}
+
+static nil cmd_zoom_dec ()
+{
+  
+}
+
+#include <signal.h>
+
+static nil cmd_loop_end ()
+{
+  raise (SIGINT);
 }

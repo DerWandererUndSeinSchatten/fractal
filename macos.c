@@ -2,8 +2,13 @@
 
 static
 u32 iter (u32 Y, u32 X, u32 D);
+
+nil gen_conf (u32 F) // FLAG
+{
   
-nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
+}
+
+nil gen_calc (u32 Y, u32 X, u32 D, img A, u32 L)
 {
   for (u32 i = 0; i < L; i++) {
     A [i] = iter (Y, X + i, D);

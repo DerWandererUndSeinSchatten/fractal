@@ -728,8 +728,8 @@ static u32 shm_rem (nil* p)
  * 
  *************************************************************************/
 
-
-extern nil calc (u32 Y, u32 X, u32 D, img A, u32 L);
+extern nil gen_calc (u32 Y, u32 X, u32 D, img A, u32 L);
+extern nil gen_conf (u16 F);
 
 /*************************************************************************
  *
@@ -754,6 +754,7 @@ static s32 work (ctx* c)
   u32 x = FRACTAL_PIXEL / FRACTAL_PROCESS;
   u32 y = 0;
   u32 z = 0;
+  u16 f = 0;
 
   if (! c) {
     goto FAILURE;
@@ -780,17 +781,19 @@ static s32 work (ctx* c)
       goto FAILURE;
     }
 
-    if (u == 0xFFFF) {
-      break;
-    }
+    if ((f = ((u16*)&u)[1])) {
 
+      gen_conf (f);
+
+    }
+    
     y = u * x;
     z = y + x;
     w = (img)c->shm.b;
     
     for (u32 i = y, j = z; i < j; i++) {
       for (u32 j = 0; j < FRACTAL_PIXEL; j += sizeof (u64)) {
-	calc (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u64));
+	gen_calc (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u64));
       }
     }
     
@@ -846,7 +849,7 @@ static s32 loop (ctx* c)
 
   if (setjmp (f_jmp)) {
 
-    u = 0xFFFF;
+    ((u16*)&u) [1] = LOOP_END;
 
     for (u32 i = 0; i < FRACTAL_PROCESS; i++) {
           
@@ -900,10 +903,14 @@ static s32 loop (ctx* c)
     b = SDL_GetTicks () - a;
 
     if (b < FRACTAL_DELAY) {
+#ifdef LOOP_LOG_TIME
       printf ("wait: %i\n", b);
+#endif
       SDL_Delay (FRACTAL_DELAY - b);
     } else {
+#ifdef LOOP_LOG_TIME
       printf ("late: %i\n", b);
+#endif
     }
 
   }

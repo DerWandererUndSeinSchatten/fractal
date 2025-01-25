@@ -22,8 +22,11 @@ typedef unsigned int*	   img;
 typedef void*              ref;
 #include <complex.h>
 
+#define FRACTAL_PROCESS	   0x8
+
 typedef float  complex     c32;
 typedef double complex     c64;
+typedef int  		   plt [FRACTAL_PROCESS];
 
 #define FRACTAL_FPS	   60
 #define FRACTAL_DELAY	   1000 / FRACTAL_FPS
@@ -37,7 +40,17 @@ typedef double complex     c64;
 #define FRACTAL_SEMAPHORES 5
 #define FRACTAL_TITLE	   "fractal"
 
-typedef int  		   plt [FRACTAL_PROCESS];		
+typedef enum {
+  WILDCARD = 0x00,
+  SCROLL_N = 0x01,
+  SCROLL_E = 0x02,
+  SCROLL_S = 0x03,
+  SCROLL_W = 0x04,
+  ZOOM_INC = 0x05,
+  ZOOM_DEC = 0x06,
+  LOOP_END = 0x07,
+  COMMANDS  
+} command_e;
 
 typedef struct {
   struct {
@@ -85,9 +98,9 @@ typedef struct {
   } pip;
   struct {
     SDL_Renderer* render;
-    SDL_Window*		window;
-    SDL_Surface*	bitmap;
-    SDL_Texture*	target;
+    SDL_Window*	  window;
+    SDL_Surface*  bitmap;
+    SDL_Texture*  target;
   } gfx;
 } ctx;
 
