@@ -900,7 +900,10 @@ static s32 loop (ctx* c)
     b = SDL_GetTicks () - a;
 
     if (b < FRACTAL_DELAY) {
+      printf ("wait: %i\n", b);
       SDL_Delay (FRACTAL_DELAY - b);
+    } else {
+      printf ("late: %i\n", b);
     }
 
   }

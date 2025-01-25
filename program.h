@@ -29,7 +29,7 @@ typedef double complex     c64;
 #define FRACTAL_DELAY	   1000 / FRACTAL_FPS
 #define FRACTAL_SUCCESS	   0x1
 #define FRACTAL_FAILURE	   0x0
-#define FRACTAL_PROCESS	   0x4
+#define FRACTAL_PROCESS	   0x8
 #define FRACTAL_PIXEL	   0x200
 #define FRACTAL_DEPTH	   0x20
 #define FRACTAL_SPACE	   FRACTAL_PIXEL * FRACTAL_PIXEL * sizeof (u32)

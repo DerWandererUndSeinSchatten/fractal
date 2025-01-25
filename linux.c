@@ -5,6 +5,7 @@
 
 #define CALC_ITERATION 0x64
 #define CALC_THRESHOLD 2.
+#define CALC_OPTIMIZED
 
 nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
 {
@@ -17,10 +18,11 @@ nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
 
   __m256 _P = _mm256_setzero_ps ();
   __m256 _Q = _mm256_setzero_ps ();  
-  __m256 _R = _mm256_set_ps (x + (7 * d), x + (6 * d),
-			      x + (5 * d), x + (4 * d),
-			      x + (3 * d), x + (2 * d),
-			      x + (1 * d), x + (0 * d));
+
+  __m256 _R =
+    _mm256_setr_ps (x + (0 * d), x + (1 * d), x + (2 * d), x + (3 * d),
+		    x + (4 * d), x + (5 * d), x + (6 * d), x + (7 * d));
+  
   __m256 _S = _mm256_set1_ps (y);
   __m256 _U = _mm256_setzero_ps ();
   __m256 _V = _mm256_setzero_ps ();
@@ -31,6 +33,13 @@ nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
   __m256 _B = _mm256_setzero_ps ();
   __m256 _C = _mm256_setzero_ps ();
   __m256 _D = _mm256_setzero_ps ();
+
+#ifdef CALC_OPTIMIZED
+  __m256 _E = _mm256_setzero_ps ();
+  __m256 _F = _mm256_setzero_ps ();
+  __m256 _H = _mm256_set1_ps (0x40);
+  __m256 _G = _mm256_setzero_ps ();
+#endif
   
   for (int i = 0; i < CALC_ITERATION; i++) {
 
@@ -45,15 +54,50 @@ nil calc (u32 Y, u32 X, u32 D, img A, u32 L)
     _B = _mm256_mul_ps (_Q, _Q);
     _C = _mm256_add_ps (_A, _B);
 
-    for (u32 j = 0; j < L; j++) {
-      if (abs (((f32*)&_C)[j]) < CALC_THRESHOLD) {
-	((u32*)&_D)[j] = i * 0x20;
-      }
+#ifdef CALC_OPTIMIZED 
+    
+    _D = _mm256_setr_ps
+      ((abs (((f32*)&_C)[0]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[1]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[2]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[3]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[4]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[5]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[6]) < CALC_THRESHOLD),
+       (abs (((f32*)&_C)[7]) < CALC_THRESHOLD));
+    
+    _E = _mm256_set1_ps ((f32)i);
+    _E = _mm256_mul_ps (_E, _H);
+    _F = _mm256_mul_ps (_D, _E);
+    _G = _mm256_add_ps (_F, _G);
+    
+#else
+
+    for (int j = 0; j < L; j++) {
+      ((u32*)&_D)[j] += (abs (((f32*)&_C)[j]) < CALC_THRESHOLD) * i * 0x40;
     }
     
+#endif
+
   }
 
+#ifdef CALC_OPTIMIZED
+
+  A [0] = 0xFF000000 + ((f32*)&_G)[0];
+  A [1] = 0xFF000000 + ((f32*)&_G)[1];
+  A [2] = 0xFF000000 + ((f32*)&_G)[2];
+  A [3] = 0xFF000000 + ((f32*)&_G)[3];
+  A [4] = 0xFF000000 + ((f32*)&_G)[4];
+  A [5] = 0xFF000000 + ((f32*)&_G)[5];
+  A [6] = 0xFF000000 + ((f32*)&_G)[6];
+  A [7] = 0xFF000000 + ((f32*)&_G)[7];
+
+#else
+
   for (int i = 0; i < L; i++) {
-    A [i] = 0xFF000000 + ((u32*)&_D)[i];
+    A [i] = 0xFF000000 + ((s32*)&_D)[i];
   }
+    
+#endif
+  
 }
