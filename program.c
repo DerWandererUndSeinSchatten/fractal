@@ -789,8 +789,8 @@ static s32 work (ctx* c)
     w = (img)c->shm.b;
     
     for (u32 i = y, j = z; i < j; i++) {
-      for (u32 j = 0; j < FRACTAL_PIXEL; j+=sizeof (u32)) {
-	calc (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u32));
+      for (u32 j = 0; j < FRACTAL_PIXEL; j += sizeof (u64)) {
+	calc (i, j, FRACTAL_PIXEL, w + i * FRACTAL_PIXEL + j, sizeof (u64));
       }
     }
     
